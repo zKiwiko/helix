@@ -778,7 +778,7 @@ impl Client {
                 name: String::from("helix"),
                 version: Some(String::from(VERSION_AND_GIT_HASH)),
             }),
-            locale: None, // TODO
+            locale: sys_locale::get_locale(),
             work_done_progress_params: lsp::WorkDoneProgressParams::default(),
         };
 
@@ -824,6 +824,52 @@ impl Client {
         self.notify::<DidChangeWorkspaceFolders>(DidChangeWorkspaceFoldersParams {
             event: WorkspaceFoldersChangeEvent { added, removed },
         })
+    }
+
+    pub fn did_create(&self, path: &Path, is_dir: bool) -> Option<()> {
+        let capabilities = self.file_operations_intests();
+        if !capabilities.did_create.has_interest(&path, is_dir) {
+            return None;
+        }
+        let url_from_path = |path| {
+            let url = if is_dir {
+                Url::from_directory_path(path)
+            } else {
+                Url::from_file_path(path)
+            };
+            Some(url.ok()?.to_string())
+        };
+        let files = vec![lsp::FileCreate {
+            uri: url_from_path(path)?,
+        }];
+        self.notify::<lsp::notification::DidCreateFiles>(lsp::CreateFilesParams { files });
+        Some(())
+    }
+
+    pub fn will_create(
+        &self,
+        path: &Path,
+        is_dir: bool,
+    ) -> Option<impl Future<Output = Result<Option<lsp::WorkspaceEdit>>>> {
+        let capabilities = self.file_operations_intests();
+        if !capabilities.will_create.has_interest(path, is_dir) {
+            return None;
+        }
+        let url_from_path = |path| {
+            let url = if is_dir {
+                Url::from_directory_path(path)
+            } else {
+                Url::from_file_path(path)
+            };
+            Some(url.ok()?.to_string())
+        };
+        let files = vec![lsp::FileCreate {
+            uri: url_from_path(path)?,
+        }];
+        Some(self.call_with_timeout::<lsp::request::WillCreateFiles>(
+            &lsp::CreateFilesParams { files },
+            5,
+        ))
     }
 
     pub fn will_rename(
@@ -874,6 +920,52 @@ impl Client {
         }];
         self.notify::<lsp::notification::DidRenameFiles>(lsp::RenameFilesParams { files });
         Some(())
+    }
+
+    pub fn did_delete(&self, path: &Path, is_dir: bool) -> Option<()> {
+        let capabilities = self.file_operations_intests();
+        if !capabilities.did_delete.has_interest(path, is_dir) {
+            return None;
+        }
+        let url_from_path = |path| {
+            let url = if is_dir {
+                Url::from_directory_path(path)
+            } else {
+                Url::from_file_path(path)
+            };
+            Some(url.ok()?.to_string())
+        };
+        let files = vec![lsp::FileDelete {
+            uri: url_from_path(path)?,
+        }];
+        self.notify::<lsp::notification::DidDeleteFiles>(lsp::DeleteFilesParams { files });
+        Some(())
+    }
+
+    pub fn will_delete(
+        &self,
+        path: &Path,
+        is_dir: bool,
+    ) -> Option<impl Future<Output = Result<Option<lsp::WorkspaceEdit>>>> {
+        let capabilities = self.file_operations_intests();
+        if !capabilities.will_delete.has_interest(path, is_dir) {
+            return None;
+        }
+        let url_from_path = |path| {
+            let url = if is_dir {
+                Url::from_directory_path(path)
+            } else {
+                Url::from_file_path(path)
+            };
+            Some(url.ok()?.to_string())
+        };
+        let files = vec![lsp::FileDelete {
+            uri: url_from_path(path)?,
+        }];
+        Some(self.call_with_timeout::<lsp::request::WillDeleteFiles>(
+            &lsp::DeleteFilesParams { files },
+            5,
+        ))
     }
 
     // -------------------------------------------------------------------------------------------
