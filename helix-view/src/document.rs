@@ -153,6 +153,8 @@ pub struct Document {
     pub(crate) jump_labels: HashMap<ViewId, Vec<Overlay>>,
     /// LSP document highlights for each view, stored as char ranges.
     pub(crate) document_highlights: HashMap<ViewId, DocumentHighlights>,
+    /// LSP semantic tokens for each view, stored as highlight/range pairs.
+    pub(crate) semantic_tokens: HashMap<ViewId, DocumentSemanticTokens>,
     /// Set to `true` when the document is updated, reset to `false` on the next inlay hints
     /// update from the LSP
     pub inlay_hints_oudated: bool,
@@ -238,6 +240,13 @@ pub struct DocumentColorSwatches {
 #[derive(Debug, Clone, Default)]
 pub struct DocumentHighlights {
     pub ranges: Vec<std::ops::Range<usize>>,
+}
+
+/// Semantic tokens returned by LSP `textDocument/semanticTokens` for a view.
+/// Each token is represented as a highlight (scope) applied to a character range.
+#[derive(Debug, Clone, Default)]
+pub struct DocumentSemanticTokens {
+    pub tokens: Vec<(syntax::Highlight, std::ops::Range<usize>)>,
 }
 
 #[derive(Debug, Clone)]
@@ -756,6 +765,7 @@ impl Document {
             readonly: false,
             jump_labels: HashMap::new(),
             document_highlights: HashMap::new(),
+            semantic_tokens: HashMap::new(),
             color_swatches: None,
             document_links: Vec::new(),
             color_swatch_controller: TaskController::new(),
@@ -1427,6 +1437,7 @@ impl Document {
         self.inlay_hints.remove(&view_id);
         self.jump_labels.remove(&view_id);
         self.document_highlights.remove(&view_id);
+        self.semantic_tokens.remove(&view_id);
         self.document_highlight_controllers.remove(&view_id);
     }
 
@@ -1599,6 +1610,28 @@ impl Document {
                 }
             }
             highlights.ranges = updated;
+        }
+
+        for tokens in self.semantic_tokens.values_mut() {
+            let text_len = self.text.len_chars();
+            let mut updated = Vec::with_capacity(tokens.tokens.len());
+            for (highlight, mut range) in tokens.tokens.drain(..) {
+                changes.update_positions(
+                    [
+                        (&mut range.start, Assoc::After),
+                        (&mut range.end, Assoc::After),
+                    ]
+                    .into_iter(),
+                );
+                if range.start >= text_len {
+                    continue;
+                }
+                let end = range.end.min(text_len);
+                if range.start < end {
+                    updated.push((highlight, range.start..end));
+                }
+            }
+            tokens.tokens = updated;
         }
 
         helix_event::dispatch(DocumentDidChange {
@@ -2393,6 +2426,33 @@ impl Document {
         self.document_highlights
             .get(&view_id)
             .map(|highlights| highlights.ranges.as_slice())
+    }
+
+    pub fn set_semantic_tokens(
+        &mut self,
+        view_id: ViewId,
+        tokens: Vec<(syntax::Highlight, std::ops::Range<usize>)>,
+    ) {
+        if tokens.is_empty() {
+            self.semantic_tokens.remove(&view_id);
+        } else {
+            self.semantic_tokens
+                .insert(view_id, DocumentSemanticTokens { tokens });
+        }
+    }
+
+    pub fn clear_semantic_tokens(&mut self, view_id: ViewId) {
+        self.semantic_tokens.remove(&view_id);
+    }
+
+    pub fn clear_all_semantic_tokens(&mut self) {
+        self.semantic_tokens.clear();
+    }
+
+    pub fn semantic_tokens(&self, view_id: ViewId) -> Option<&[(syntax::Highlight, std::ops::Range<usize>)]> {
+        self.semantic_tokens
+            .get(&view_id)
+            .map(|tokens| tokens.tokens.as_slice())
     }
 
     pub fn document_highlight_controller(&mut self, view_id: ViewId) -> &mut TaskController {

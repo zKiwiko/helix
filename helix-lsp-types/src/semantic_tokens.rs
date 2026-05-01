@@ -46,6 +46,34 @@ impl SemanticTokenType {
         SemanticTokenType(Cow::Borrowed(tag))
     }
 
+    pub fn all() -> Vec<SemanticTokenType> {
+        vec![
+            Self::NAMESPACE,
+            Self::TYPE,
+            Self::CLASS,
+            Self::ENUM,
+            Self::INTERFACE,
+            Self::STRUCT,
+            Self::TYPE_PARAMETER,
+            Self::PARAMETER,
+            Self::VARIABLE,
+            Self::PROPERTY,
+            Self::ENUM_MEMBER,
+            Self::EVENT,
+            Self::FUNCTION,
+            Self::METHOD,
+            Self::MACRO,
+            Self::KEYWORD,
+            Self::MODIFIER,
+            Self::COMMENT,
+            Self::STRING,
+            Self::NUMBER,
+            Self::REGEXP,
+            Self::OPERATOR,
+            Self::DECORATOR, // @since 3.17.0
+        ]
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -85,6 +113,21 @@ impl SemanticTokenModifier {
 
     pub const fn new(tag: &'static str) -> Self {
         SemanticTokenModifier(Cow::Borrowed(tag))
+    }
+
+    pub fn all() -> Vec<SemanticTokenModifier> {
+        vec![
+            Self::DECLARATION,
+            Self::DEFINITION,
+            Self::READONLY,
+            Self::STATIC,
+            Self::DEPRECATED,
+            Self::ABSTRACT,
+            Self::ASYNC,
+            Self::MODIFICATION,
+            Self::DOCUMENTATION,
+            Self::DEFAULT_LIBRARY,
+        ]
     }
 
     pub fn as_str(&self) -> &str {

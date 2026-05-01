@@ -151,6 +151,9 @@ impl EditorView {
                     overlays.push(overlay);
                 }
             }
+            if let Some(overlay) = Self::doc_semantic_tokens(doc, view) {
+                overlays.push(overlay);
+            }
             if let Some(tabstops) = Self::tabstop_highlights(doc, theme) {
                 overlays.push(tabstops);
             }
@@ -486,6 +489,20 @@ impl EditorView {
         Some(OverlayHighlights::Homogeneous {
             highlight,
             ranges: ranges.to_vec(),
+        })
+    }
+
+    pub fn doc_semantic_tokens(
+        doc: &Document,
+        view: &View,
+    ) -> Option<OverlayHighlights> {
+        let tokens = doc.semantic_tokens(view.id)?;
+        if tokens.is_empty() {
+            return None;
+        }
+
+        Some(OverlayHighlights::Heterogenous {
+            highlights: tokens.to_vec(),
         })
     }
 

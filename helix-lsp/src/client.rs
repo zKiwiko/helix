@@ -315,6 +315,10 @@ impl Client {
 
         use lsp::*;
         match feature {
+            LanguageServerFeature::SemanticTokens => {
+                capabilities.semantic_tokens_provider.is_some()
+            }
+
             LanguageServerFeature::Format => matches!(
                 capabilities.document_formatting_provider,
                 Some(OneOf::Left(true) | OneOf::Right(_))
@@ -733,6 +737,20 @@ impl Client {
                         }),
                         hierarchical_document_symbol_support: Some(false),
                         ..Default::default()
+                    }),
+                    semantic_tokens: Some(lsp::SemanticTokensClientCapabilities {
+                        augments_syntax_tokens: Some(false),
+                        server_cancel_support: Some(false),
+                        dynamic_registration: Some(false),
+                        requests: lsp::SemanticTokensClientCapabilitiesRequests {
+                            range: Some(true),
+                            full: Some(lsp::SemanticTokensFullOptions::Bool(true)),
+                        },
+                        token_types: lsp::SemanticTokenType::all(),
+                        token_modifiers: lsp::SemanticTokenModifier::all(),
+                        formats: vec![lsp::TokenFormat::RELATIVE],
+                        overlapping_token_support: Some(false),
+                        multiline_token_support: Some(true),
                     }),
                     ..Default::default()
                 }),
