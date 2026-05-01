@@ -17,9 +17,7 @@ members = [
   "xtask",
 ]
 
-default-members = [
-  "helix-term"
-]
+default-members = ["helix-term"]
 
 [profile.release]
 lto = "thin"
@@ -49,7 +47,10 @@ ropey = { version = "1.6.1", default-features = false, features = ["simd"] }
 foldhash = "0.2"
 parking_lot = "0.12"
 futures-executor = "0.3"
-futures-util = { version = "0.3", features = ["std", "async-await"], default-features = false }
+futures-util = { version = "0.3", features = [
+  "std",
+  "async-await",
+], default-features = false }
 tokio-stream = "0.1.18"
 toml = "1.1"
 termina = "0.3"
@@ -59,7 +60,7 @@ etcetera = "0.11"
 arc-swap = "1.9"
 
 [workspace.package]
-version = "25.7.1"
+version = "25.8.0up"
 edition = "2021"
 authors = ["Blaž Hrastnik <blaz@mxxn.io>"]
 categories = ["editor"]
